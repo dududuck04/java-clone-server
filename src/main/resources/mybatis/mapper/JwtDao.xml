@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="com.mzc.stc.caa.carrot.user.dao.JwtDao">
+
+	<!-- JWT 토큰 DB에 저장  -->  
+    <insert id="saveJwt" parameterType= "Map">
+    	INSERT INTO LoginToken (jwt, userIdx) 
+    	VALUES (#{jwt}, #{userIdx})
+	</insert>
+	
+	<!-- JWT 토큰 체크 -->
+	<select id="checkJwt" parameterType= "int" resultType="boolean">
+    	SELECT count(*) 
+    	FROM LoginToken
+    	WHERE userIdx = #{userIdx}
+	</select>
+	
+		<!-- 로그인 상태 체크 -->
+	<select id="checkLoginStatus" parameterType= "int" resultType="int">
+    	SELECT status
+    	FROM LoginToken
+    	WHERE userIdx = #{userIdx}
+	</select>
+	
+	<update id="patchLoginStatus" parameterType= "int">
+		UPDATE LoginToken set status = 1
+		WHERE userIdx = #{userIdx}
+	</update>
+	
+	<update id="updateJwt" parameterType= "map">
+		UPDATE LoginToken set jwt = #{jwt}
+		WHERE userIdx = #{userIdx}
+	</update>
+	
+		<!-- 사번을 통한 사용자 정보 조회  -->  
+    <update  id="logout" parameterType= "int"  >
+    	UPDATE LoginToken SET status = 0 
+    	WHERE userIdx = #{userIdx} and status = 1
+	</update >
+	
+	
+
+
+</mapper>

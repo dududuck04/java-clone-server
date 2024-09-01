@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="com.mzc.stc.caa.carrot.user.dao.ProductDao">
+	
+	<select id="checkRegionName" parameterType="RegionDto" resultType="boolean">
+		SELECT count(regionIdx)
+		FROM UserRegion
+		WHERE userIdx = #{userIdx} and regionName = #{regionName} and status = 1
+	</select>
+	
+	<select id="checkIsPurchased" parameterType="int" resultType="boolean">
+		SELECT count(*)
+		FROM Product
+		WHERE productIdx = #{productIdx} and saleStatus = 0 and status = 1
+	</select>
+	
+	<select id="checkIsMyProduct" parameterType="ProductDto" resultType="boolean">
+		SELECT count(*)
+		FROM Product
+		WHERE productIdx = #{productIdx} and productUserIdx = #{productUserIdx} and status = 1
+	</select>
+
+	
+	<select id="checkProduct" parameterType="int" resultType="boolean">
+		SELECT count(*)
+		FROM Product
+		WHERE productIdx = #{productIdx} and status = 1
+	</select>
+	
+	<select id="checkProductAccessUser" parameterType="ProductDto" resultType="boolean">
+		SELECT count(*)
+		FROM Product
+		WHERE productIdx = #{productIdx} and productUserIdx = #{productUserIdx} and status = 1
+	</select>
+	
+	
+		<!-- 상품 등록   -->  
+    <insert id="createProduct" parameterType= "Map" useGeneratedKeys = "true" >
+        <selectKey keyProperty="productIdx" resultType="Integer" order = "AFTER">  
+        	SELECT LAST_INSERT_ID() as productIdx
+     	</selectKey>
+    	INSERT INTO Product (title, price, content, categoryIdx, productUserIdx ) 
+    		   VALUES (#{title},#{price}, #{content}, #{categoryIdx} ,#{productUserIdx})
+	</insert>
+	
+		<!-- 상품 이미지 등록   -->  
+	    <insert id="createProductImg" parameterType= "Map" useGeneratedKeys = "true" >
+    	INSERT INTO ProductImage (productIdx, image) 
+    		   VALUES (#{productIdx},#{image})
+	</insert>
+	
+	
+	<!-- 사번을 통한 사용자 정보 조회  -->  
+    <update id="patchProductStatus" parameterType="int">
+    	UPDATE Product
+    	SET status = 0 
+    	WHERE productIdx = #{productIdx} and productUserIdx = #{productUserIdx}
+	</update>
+	
+	<!-- 상품 구매  -->  
+    <update id="patchProductPurchasing" parameterType="ProductDto">
+    	UPDATE Product
+    	SET purchasedUserIdx = #{productUserIdx},saleStatus = 0
+    	WHERE productIdx = #{productIdx} and status = 1
+	</update>
+	
+	<select id="getProductList" parameterType="String" resultType="Map">
+	select p.productIdx , p.title , r.regionName ,
+				        case
+			        	<![CDATA[when (timestampdiff(minute, p.createAt, now()) < 1)
+			                then concat(timestampdiff(second, p.createAt, now()), '초', ' 전')]]>
+			            <![CDATA[when (timestampdiff(hour, p.createAt, now()) < 1)
+			                then concat(timestampdiff(minute, p.createAt, now()),'분', ' 전')]]>
+			            <![CDATA[when (timestampdiff(day, p.createAt, now()) < 1)
+			                then concat(timestampdiff(hour, p.createAt, now()), '시간', ' 전')]]>
+			            <![CDATA[when (timestampdiff(hour, p.createAt, now()) > 24)
+			                then concat(timestampdiff(day, p.createAt, now()), '일', ' 전')]]>
+			            <![CDATA[else concat(timestampdiff(month , p.createAt, now()),'달', ' 전')]]>
+			            end as uploadTime,
+			 case when(c.categoryIdx = 1)
+	                then '디지털기기'
+	             when(c.categoryIdx = 2)
+	                 then '인기매물'
+	            when(c.categoryIdx = 3)
+	                 then '생활가전'
+	            when(c.categoryIdx = 4)
+	                 then '가구/인테리어'
+	            when(c.categoryIdx = 5)
+	                 then '유아동'
+	            when(c.categoryIdx = 6)
+	                 then '생활/가공식품'
+	            when(c.categoryIdx = 7)
+	                 then '유아도서'
+	            when(c.categoryIdx = 8)
+	                 then '스포츠/레저'
+	            when(c.categoryIdx = 9)
+	                 then '여성잡화'
+	            when(c.categoryIdx = 10)
+	                 then '여성의류'
+	            when(c.categoryIdx = 11)
+	                 then '남성패션/잡화'
+	            when(c.categoryIdx = 12)
+	                 then '게임/취미'
+	            when(c.categoryIdx = 13)
+	                 then '뷰티/미용'
+	            when(c.categoryIdx = 14)
+	                 then '반려동물용품'
+	            when(c.categoryIdx = 15)
+	                 then '도서/티켓/음반'
+	            when(c.categoryIdx = 16)
+	                 then '식물'
+	            when(c.categoryIdx = 17)
+	                 then '기타 중고물품'
+	            when(c.categoryIdx = 18)
+	                 then '중고차'
+	            when(c.categoryIdx = 19)
+	                 then '삽니다'
+	            else '기타 중고물품' end as categoryname,
+	        price,
+	        case when(p.saleStatus = 0)
+	                then '판매완료'
+	             when(p.saleStatus = 1)
+	                then '판매중'
+	             when(p.saleStatus = 2)
+	                 then '나눔중'
+	             when(p.saleStatus = 3)
+	                 then '나눔완료'
+	             end as productStatus,
+	        y.interestCount, pi.image
+	            from Product p
+	                left join UserRegion r on p.productUserIdx = r.userIdx
+	                left join ProductCategory c on p.categoryIdx = c.categoryIdx
+	                left join(
+	                        select productIdx, count(productIdx) as 'interestCount'
+	                        from ProductInterest
+	                        where status = 1
+	                        group by productIdx) as y
+	                on p.productIdx = y.productIdx
+	                left join (
+	                        select productIdx,image
+	                        from ProductImage
+	                        where status = 1 and productIdx = #{productIdx}
+	                        order by ProductImage.createAt
+	                        limit 1) as pi
+	                    on p.productIdx = pi.productIdx
+	                where p.status = 1 and r.regionName = #{regionName} and r.status = 1 and not p.saleStatus in (0,3)
+	</select>
+	
+	
+		<select id="getProduct" parameterType="int" resultType="Map">
+			select u.userIdx, u.nickName, u.image as UserImage, u.mannerTemp,p.productIdx
+			        ,r.regionName as productRegion , p.title as productTitle,
+			        case when(c.categoryIdx = 1)
+			                then '디지털기기'
+			             when(c.categoryIdx = 2)
+			                 then '인기매물'
+			            when(c.categoryIdx = 3)
+			                 then '생활가전'
+			            when(c.categoryIdx = 4)
+			                 then '가구/인테리어'
+			            when(c.categoryIdx = 5)
+			                 then '유아동'
+			            when(c.categoryIdx = 6)
+			                 then '생활/가공식품'
+			            when(c.categoryIdx = 7)
+			                 then '유아도서'
+			            when(c.categoryIdx = 8)
+			                 then '스포츠/레저'
+			            when(c.categoryIdx = 9)
+			                 then '여성잡화'
+			            when(c.categoryIdx = 10)
+			                 then '여성의류'
+			            when(c.categoryIdx = 11)
+			                 then '남성패션/잡화'
+			            when(c.categoryIdx = 12)
+			                 then '게임/취미'
+			            when(c.categoryIdx = 13)
+			                 then '뷰티/미용'
+			            when(c.categoryIdx = 14)
+			                 then '반려동물용품'
+			            when(c.categoryIdx = 15)
+			                 then '도서/티켓/음반'
+			            when(c.categoryIdx = 16)
+			                 then '식물'
+			            when(c.categoryIdx = 17)
+			                 then '기타 중고물품'
+			            when(c.categoryIdx = 18)
+			                 then '중고차'
+			            when(c.categoryIdx = 19)
+			                 then '삽니다'
+			            else '기타 중고물품' end as categoryname,
+			        case
+			        	<![CDATA[when (timestampdiff(minute, p.createAt, now()) < 1)
+			                then concat(timestampdiff(second, p.createAt, now()), '초', ' 전')]]>
+			            <![CDATA[when (timestampdiff(hour, p.createAt, now()) < 1)
+			                then concat(timestampdiff(minute, p.createAt, now()),'분', ' 전')]]>
+			            <![CDATA[when (timestampdiff(day, p.createAt, now()) < 1)
+			                then concat(timestampdiff(hour, p.createAt, now()), '시간', ' 전')]]>
+			            <![CDATA[when (timestampdiff(hour, p.createAt, now()) > 24)
+			                then concat(timestampdiff(day, p.createAt, now()), '일', ' 전')]]>
+			            <![CDATA[else concat(timestampdiff(month , p.createAt, now()),'달', ' 전')]]>
+			            end as uploadTime,
+			        p.content,
+			        case when(p.saleStatus = 0)
+			                then '판매완료'
+			             when(p.saleStatus = 2)
+			                 then '나눔중'
+			            when(p.saleStatus = 3)
+			                 then '나눔완료'
+			            else concat(format(p.price, 0), '원') end as price,
+			        case when(p.saleStatus = 0)
+			                then '판매완료'
+			             when(p.saleStatus = 1)
+			                then '판매중'
+			             when(p.saleStatus = 2)
+			                 then '나눔중'
+			             when(p.saleStatus = 3)
+			                 then '나눔완료'
+			             end as productStatus,
+			        y.interestCount, pi.image
+			FROM User u
+			        left join Product p on u.userIdx = p.productUserIdx
+			        left join UserRegion r on u.userIdx = r.userIdx
+			        left join ProductCategory c on p.categoryIdx = c.categoryIdx
+			        left join(
+			                select productIdx, count(productIdx) as 'interestCount'
+			                from ProductInterest
+			                where status = 1
+			                group by productIdx) as y
+			            on p.productIdx = y.productIdx
+			        left join (
+			                select productIdx,image
+			                from ProductImage
+			                where status = 1 and productIdx = #{productIdx}
+			                order by ProductImage.createAt
+			                limit 1) as pi
+			            on p.productIdx = pi.productIdx
+			WHERE p.productIdx = #{productIdx}
+			order by r.nowStatus DESC
+			limit 1;
+	</select>
+	
+	<select id="getProductSale" parameterType="int" resultType="Map">
+			select p.productIdx ,u.userIdx, u.nickName, u.image as UserImage, u.mannerTemp
+			        ,r.regionName as productRegion , p.title as productTitle,
+			        case when(c.categoryIdx = 1)
+			                then '디지털기기'
+			             when(c.categoryIdx = 2)
+			                 then '인기매물'
+			            when(c.categoryIdx = 3)
+			                 then '생활가전'
+			            when(c.categoryIdx = 4)
+			                 then '가구/인테리어'
+			            when(c.categoryIdx = 5)
+			                 then '유아동'
+			            when(c.categoryIdx = 6)
+			                 then '생활/가공식품'
+			            when(c.categoryIdx = 7)
+			                 then '유아도서'
+			            when(c.categoryIdx = 8)
+			                 then '스포츠/레저'
+			            when(c.categoryIdx = 9)
+			                 then '여성잡화'
+			            when(c.categoryIdx = 10)
+			                 then '여성의류'
+			            when(c.categoryIdx = 11)
+			                 then '남성패션/잡화'
+			            when(c.categoryIdx = 12)
+			                 then '게임/취미'
+			            when(c.categoryIdx = 13)
+			                 then '뷰티/미용'
+			            when(c.categoryIdx = 14)
+			                 then '반려동물용품'
+			            when(c.categoryIdx = 15)
+			                 then '도서/티켓/음반'
+			            when(c.categoryIdx = 16)
+			                 then '식물'
+			            when(c.categoryIdx = 17)
+			                 then '기타 중고물품'
+			            when(c.categoryIdx = 18)
+			                 then '중고차'
+			            when(c.categoryIdx = 19)
+			                 then '삽니다'
+			            else '기타 중고물품' end as categoryname,
+			        case
+						<![CDATA[when (timestampdiff(minute, p.createAt, now()) < 1)
+			                then concat(timestampdiff(second, p.createAt, now()), '초', ' 전')]]>
+			            <![CDATA[when (timestampdiff(hour, p.createAt, now()) < 1)
+			                then concat(timestampdiff(minute, p.createAt, now()),'분', ' 전')]]>
+			            <![CDATA[when (timestampdiff(day, p.createAt, now()) < 1)
+			                then concat(timestampdiff(hour, p.createAt, now()), '시간', ' 전')]]>
+			            <![CDATA[when (timestampdiff(hour, p.createAt, now()) > 24)
+			                then concat(timestampdiff(day, p.createAt, now()), '일', ' 전')]]>
+			            <![CDATA[else concat(timestampdiff(month , p.createAt, now()),'달', ' 전')]]>
+
+			            end as uploadTime,
+			        p.content,
+			        case when(p.saleStatus = 0)
+			                then '판매완료'
+			             when(p.saleStatus = 2)
+			                 then '나눔중'
+			            when(p.saleStatus = 3)
+			                 then '나눔완료'
+			            else concat(format(p.price, 0), '원') end as price,
+			        case when(p.saleStatus = 0)
+			                then '판매완료'
+			             when(p.saleStatus = 1)
+			                then '판매중'
+			             when(p.saleStatus = 2)
+			                 then '나눔중'
+			             when(p.saleStatus = 3)
+			                 then '나눔완료'
+			             end as productStatus,
+			        y.interestCount, pi.image
+			FROM User u
+			        left join Product p on u.userIdx = p.productUserIdx
+			        left join (select userIdx, regionName,nowStatus,
+			                   ROW_NUMBER() OVER(PARTITION BY userIdx ORDER BY nowStatus DESC) AS RANKING
+			                   from UserRegion
+			                   order by RANKING) r
+			            on u.userIdx = r.userIdx
+			        left join ProductCategory c on p.categoryIdx = c.categoryIdx
+			        left join(
+			                select productIdx, count(productIdx) as 'interestCount'
+			                from ProductInterest
+			                where status = 1
+			                group by productIdx) as y
+			            on p.productIdx = y.productIdx
+			        left join (
+			                select productIdx,image
+			                from ProductImage
+			                where status = 1
+			                order by ProductImage.createAt
+			                limit 1) as pi
+			            on p.productIdx = pi.productIdx
+			WHERE u.userIdx = #{userIdx} and p.saleStatus = 1 and r.RANKING = 1 and p.status = 1
+            group by p.productIdx;
+	</select>
+	
+		<select id="getProductComplete" parameterType="int" resultType="Map">
+			select p.productIdx ,u.userIdx, u.nickName, u.image as UserImage, u.mannerTemp
+			        ,r.regionName as productRegion , p.title as productTitle,
+			        case when(c.categoryIdx = 1)
+			                then '디지털기기'
+			             when(c.categoryIdx = 2)
+			                 then '인기매물'
+			            when(c.categoryIdx = 3)
+			                 then '생활가전'
+			            when(c.categoryIdx = 4)
+			                 then '가구/인테리어'
+			            when(c.categoryIdx = 5)
+			                 then '유아동'
+			            when(c.categoryIdx = 6)
+			                 then '생활/가공식품'
+			            when(c.categoryIdx = 7)
+			                 then '유아도서'
+			            when(c.categoryIdx = 8)
+			                 then '스포츠/레저'
+			            when(c.categoryIdx = 9)
+			                 then '여성잡화'
+			            when(c.categoryIdx = 10)
+			                 then '여성의류'
+			            when(c.categoryIdx = 11)
+			                 then '남성패션/잡화'
+			            when(c.categoryIdx = 12)
+			                 then '게임/취미'
+			            when(c.categoryIdx = 13)
+			                 then '뷰티/미용'
+			            when(c.categoryIdx = 14)
+			                 then '반려동물용품'
+			            when(c.categoryIdx = 15)
+			                 then '도서/티켓/음반'
+			            when(c.categoryIdx = 16)
+			                 then '식물'
+			            when(c.categoryIdx = 17)
+			                 then '기타 중고물품'
+			            when(c.categoryIdx = 18)
+			                 then '중고차'
+			            when(c.categoryIdx = 19)
+			                 then '삽니다'
+			            else '기타 중고물품' end as categoryName,
+			        case
+						<![CDATA[when (timestampdiff(minute, p.updateAt, now()) < 1)
+			                then concat(timestampdiff(second, p.updateAt, now()), '초', ' 전')]]>
+			            <![CDATA[when (timestampdiff(hour, p.updateAt, now()) < 1)
+			                then concat(timestampdiff(minute, p.updateAt, now()),'분', ' 전')]]>
+			            <![CDATA[when (timestampdiff(day, p.updateAt, now()) < 1)
+			                then concat(timestampdiff(hour, p.updateAt, now()), '시간', ' 전')]]>
+			            <![CDATA[when (timestampdiff(hour, p.updateAt, now()) > 24)
+			                then concat(timestampdiff(day, p.updateAt, now()), '일', ' 전')]]>
+			            <![CDATA[else concat(timestampdiff(month , p.updateAt, now()),'달', ' 전')]]>
+
+			            end as uploadTime,
+			        p.content,
+			        case when(p.saleStatus = 0)
+			                then '판매완료'
+			             when(p.saleStatus = 2)
+			                 then '나눔중'
+			            when(p.saleStatus = 3)
+			                 then '나눔완료'
+			            else concat(format(p.price, 0), '원') end as price,
+			        case when(p.saleStatus = 0)
+			                then '판매완료'
+			             when(p.saleStatus = 1)
+			                then '판매중'
+			             when(p.saleStatus = 2)
+			                 then '나눔중'
+			             when(p.saleStatus = 3)
+			                 then '나눔완료'
+			             end as productStatus,
+			        y.interestCount, pi.image
+			FROM User u
+			        left join Product p on u.userIdx = p.productUserIdx
+			        left join (select userIdx, regionName,nowStatus,
+			                   ROW_NUMBER() OVER(PARTITION BY userIdx ORDER BY nowStatus DESC) AS RANKING
+			                   from UserRegion
+			                   order by RANKING) r
+			            on u.userIdx = r.userIdx
+			        left join ProductCategory c on p.categoryIdx = c.categoryIdx
+			        left join(
+			                select productIdx, count(productIdx) as 'interestCount'
+			                from ProductInterest
+			                where status = 1
+			                group by productIdx) as y
+			            on p.productIdx = y.productIdx
+			        left join (
+			                select productIdx,image
+			                from ProductImage
+			                where status = 1
+			                order by ProductImage.createAt
+			                limit 1) as pi
+			            on p.productIdx = pi.productIdx
+			WHERE u.userIdx = #{userIdx} and p.saleStatus = 0 and r.RANKING = 1 and p.status = 1
+            group by p.productIdx;
+	</select>
+	
+	
+	<select id="getProductPurchased" parameterType="int" resultType="Map">
+select p.productIdx ,u.userIdx, u.nickName as 'buyer',p.productUserNickName as 'seller',
+       u.image as UserImage,
+			        p.title as productTitle,
+			        case when(c.categoryIdx = 1)
+			                then '디지털기기'
+			             when(c.categoryIdx = 2)
+			                 then '인기매물'
+			            when(c.categoryIdx = 3)
+			                 then '생활가전'
+			            when(c.categoryIdx = 4)
+			                 then '가구/인테리어'
+			            when(c.categoryIdx = 5)
+			                 then '유아동'
+			            when(c.categoryIdx = 6)
+			                 then '생활/가공식품'
+			            when(c.categoryIdx = 7)
+			                 then '유아도서'
+			            when(c.categoryIdx = 8)
+			                 then '스포츠/레저'
+			            when(c.categoryIdx = 9)
+			                 then '여성잡화'
+			            when(c.categoryIdx = 10)
+			                 then '여성의류'
+			            when(c.categoryIdx = 11)
+			                 then '남성패션/잡화'
+			            when(c.categoryIdx = 12)
+			                 then '게임/취미'
+			            when(c.categoryIdx = 13)
+			                 then '뷰티/미용'
+			            when(c.categoryIdx = 14)
+			                 then '반려동물용품'
+			            when(c.categoryIdx = 15)
+			                 then '도서/티켓/음반'
+			            when(c.categoryIdx = 16)
+			                 then '식물'
+			            when(c.categoryIdx = 17)
+			                 then '기타 중고물품'
+			            when(c.categoryIdx = 18)
+			                 then '중고차'
+			            when(c.categoryIdx = 19)
+			                 then '삽니다'
+			            else '기타 중고물품' end as categoryname,
+			        case
+						<![CDATA[when (timestampdiff(minute, p.updateAt, now()) < 1)
+			                then concat(timestampdiff(second, p.updateAt, now()), '초', ' 전 구매')]]>
+			            <![CDATA[when (timestampdiff(hour, p.updateAt, now()) < 1)
+			                then concat(timestampdiff(minute, p.updateAt, now()),'분', ' 전 구매')]]>
+			            <![CDATA[when (timestampdiff(day, p.updateAt, now()) < 1)
+			                then concat(timestampdiff(hour, p.updateAt, now()), '시간', ' 전 구매')]]>
+			            <![CDATA[when (timestampdiff(hour, p.updateAt, now()) > 24)
+			                then concat(timestampdiff(day, p.updateAt, now()), '일', ' 전 구매')]]>
+			            <![CDATA[else concat(timestampdiff(month , p.updateAt, now()),'달', ' 전 구매')]]>
+			            end as purchasedTime,
+			        p.content,
+			        price,
+			        case when(p.saleStatus = 0)
+			                then '판매완료'
+			             when(p.saleStatus = 1)
+			                then '판매중'
+			             when(p.saleStatus = 2)
+			                 then '나눔중'
+			             when(p.saleStatus = 3)
+			                 then '나눔완료'
+			             end as productStatus,
+			        y.interestCount, pi.image
+			FROM User u
+			        join (
+                        select PT.*, UR.nickName AS productUserNickName
+                from Product PT
+                        join User UR on UR.userIdx = PT.productUserIdx
+                    ) p on u.userIdx = p.purchasedUserIdx
+
+
+			        left join (select userIdx, regionName,nowStatus,
+			                   ROW_NUMBER() OVER(PARTITION BY userIdx ORDER BY nowStatus DESC) AS RANKING
+			                   from UserRegion
+			                   order by RANKING) r
+			            on u.userIdx = r.userIdx
+
+
+			        left join ProductCategory c on p.categoryIdx = c.categoryIdx
+			        left join(
+			                select productIdx, count(productIdx) as 'interestCount'
+			                from ProductInterest
+			                where status = 1
+			                group by productIdx) as y
+			            on p.productIdx = y.productIdx
+
+			        left join (
+			                select productIdx,image
+			                from ProductImage
+			                where status = 1
+			                order by ProductImage.createAt
+			                limit 1) as pi
+			            on p.productIdx = pi.productIdx
+
+			WHERE u.userIdx = #{userIdx} and p.saleStatus = 0 and r.RANKING = 1
+            group by p.productIdx;
+	</select>
+
+</mapper>

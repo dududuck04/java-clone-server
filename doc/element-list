@@ -1,0 +1,12 @@
+com.mzc.stc.caa.carrot
+com.mzc.stc.caa.carrot.config
+com.mzc.stc.caa.carrot.config.secret
+com.mzc.stc.caa.carrot.sample.controller
+com.mzc.stc.caa.carrot.sample.dao
+com.mzc.stc.caa.carrot.sample.model
+com.mzc.stc.caa.carrot.sample.service
+com.mzc.stc.caa.carrot.user.controller
+com.mzc.stc.caa.carrot.user.dao
+com.mzc.stc.caa.carrot.user.model
+com.mzc.stc.caa.carrot.user.service
+com.mzc.stc.caa.carrot.utils

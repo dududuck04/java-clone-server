@@ -1,0 +1,38 @@
+# MyBatis
+mybatis:
+#  config-location: "classpath:mybatis/mybatis-config.xml"
+  mapper-locations: "classpath:mybatis/mapper/**/*.xml"
+  type-aliases-package: "com.mzc.stc.caa.carrot"
+# Server
+server:
+  port: 8081
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: always
+    include-exception: false
+# Spring
+spring:
+  datasource:
+    driver-class-name: "com.mysql.cj.jdbc.Driver"
+    username: "admin"
+    password: "admin1234!#"
+---
+# 'local' profile
+spring:
+  config:
+    activate:
+      on-profile: "local"
+  datasource:
+    url: "jdbc:mysql://localhost:3306/carrotDB?characterEncoding=UTF-8&useTimezone=true&serverTimezone=Asia/Seoul"
+  output:
+    ansi:
+      enabled: always
+---
+# 'dev' profile
+spring:
+  config:
+    activate:
+      on-profile: "dev"
+  datasource:
+    url: "jdbc:mysql://mzc-ojt-db.cluster-c8savoimjq2w.ap-northeast-2.rds.amazonaws.com:3306/carrotDB?characterEncoding=UTF-8&useTimezone=true&serverTimezone=Asia/Seoul"

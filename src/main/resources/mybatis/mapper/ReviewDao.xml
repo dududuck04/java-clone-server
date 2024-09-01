@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="com.mzc.stc.caa.carrot.user.dao.ReviewDao">
+	
+	<!-- 상품에 새로운 리뷰 작성  -->  
+    <insert id="createReview" parameterType="ReviewDto">
+		INSERT INTO ProductReview (productIdx, reviewWriterIdx, content) 
+    	VALUES (#{productIdx},#{reviewWriterIdx},#{content})
+    </insert>
+    
+      <insert id="createProductReview" parameterType="ReviewDto">
+		INSERT INTO ProductReview (productIdx, reviewWriterIdx, content, type) 
+    	VALUES (#{productIdx},#{reviewWriterIdx},#{content}, #{type})
+    </insert>
+    
+    <!-- 특정 상품 리뷰 리턴 -->    
+	<select id="getReview" parameterType="int" resultType="Map">
+		 SELECT content, User.nickName as 상품_판매자
+		 FROM ProductReview
+		 JOIN User ON ProductReview.reviewWriterIdx = User.userIdx
+		 WHERE productIdx =  #{productIdx} and reviewWriterIdx = #{reviewWriterIdx}
+		 limit 1;
+	</select> 
+	
+	<!-- 특정 상품 리뷰 타입만 리턴 --> 
+	<select id="getReviewType" parameterType="int" resultType="String">
+		 SELECT UserMannerType.content
+		 FROM ProductReview
+		 JOIN UserMannerType ON ProductReview.type = UserMannerType.typeIdx
+		 WHERE productIdx =  #{productIdx}
+	</select> 
+	
+	
+	    <!-- 실제 존재하는 리뷰인지 확인 -->    
+	<select id="checkReview" parameterType="int" resultType="boolean">
+		 SELECT count(*)
+		 FROM ProductReview
+		 WHERE productReviewIdx =  #{productReviewIdx} and status = 1
+	</select> 
+	
+		<!-- 내가 작성한 리뷰인지 확인 -->    
+	<select id="checkReviewAccess" parameterType="ReviewDto" resultType="boolean">
+		 SELECT count(*)
+		 FROM ProductReview
+		 WHERE productIdx =  #{productIdx} and reviewWriterIdx = #{reviewWriterIdx}
+	</select> 
+	
+		<!-- 내가 장석한 리뷰 삭제 -->
+	<update id="patchReviewStatus" parameterType="ReviewDto">
+		DELETE
+		FROM ProductReview
+		WHERE reviewWriterIdx = #{reviewWriterIdx} and productIdx = #{productIdx}
+	</update>
+	
+	
+
+    
+    
+</mapper>

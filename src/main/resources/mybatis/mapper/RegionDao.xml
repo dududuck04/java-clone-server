@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="com.mzc.stc.caa.carrot.user.dao.RegionDao">
+	
+	<!-- 회원 탈퇴시 유저 지역 삭제  -->  
+    <update id="deleteRegion" parameterType="int">
+    	UPDATE UserRegion
+    	SET status = 0 
+    	WHERE userIdx = #{userIdx}
+    </update>
+
+    <!-- 유저 보유 지역 삭제 .. 최소 한개는 남겨둬야함  --> 
+    <update id="deleteRegionStatus" parameterType="RegionDto">
+    	UPDATE UserRegion
+    	SET status = 0, nowStatus = 0
+    	WHERE userIdx = #{userIdx} and regionIdx = #{regionIdx}
+    </update>
+    
+    <select id="getRegionCount" parameterType="int" resultType="int">
+		SELECT count(regionIdx) as count
+		FROM UserRegion
+		WHERE userIdx = #{userIdx} and status = 1
+	</select>
+
+	<select id="checkRegionName" parameterType="RegionDto" resultType="boolean">
+		SELECT count(regionIdx)
+		FROM UserRegion
+		WHERE userIdx = #{userIdx} and regionName = #{regionName} and status = 1
+		
+	</select>
+	
+	<select id="checkRegionDetail" parameterType="RegionDto" resultType="boolean">
+		SELECT count(regionIdx)
+		FROM UserRegion
+		WHERE userIdx = #{userIdx} and latitude = #{latitude} and longitude = #{longitude} and status = 1
+		
+	</select>
+	
+	
+	
+	<select id="checkRegionNull" parameterType="int" resultType="boolean">
+    	SELECT count(*) 
+    	FROM UserRegion 
+    	WHERE regionName IS NOT NULL and userIdx = #{userIdx};	
+	</select>
+	
+		<select id="checkRegionName2" parameterType="ProductDto" resultType="boolean">
+		SELECT count(regionIdx)
+		FROM UserRegion
+		WHERE userIdx = #{productUserIdx} and regionName = #{regionName} 
+	</select>
+
+
+	<!-- regionIdx를 이용해 존재하는 지역 정보인지 확인 -->
+	<select id="checkRegionIdx" parameterType= "int" resultType="boolean">
+		SELECT count(*)
+		FROM UserRegion
+		WHERE regionIdx = #{regionIdx} and status = 1
+
+	</select>
+
+	<!-- 유저 전화번호를 이용해 회원 가입 여부 확인조회 -->
+	<select id="checkRegionAccess" parameterType= "RegionDto" resultType="boolean">
+		SELECT count(regionIdx)
+		FROM UserRegion
+		WHERE userIdx = #{userIdx} and regionIdx = #{regionIdx} and status = 1
+
+	</select>
+
+	<!-- 유저 전화번호 및 상태정보를 이용해 회원 가입 여부 확인조회 -->
+	<select id="checkRegionNow" parameterType= "RegionDto" resultType="boolean">
+		SELECT count(regionIdx)
+		FROM UserRegion
+		WHERE userIdx = #{userIdx} and regionIdx = #{regionIdx} and status = 1 and nowStatus = 1
+
+	</select>
+	
+		<!-- 유저 전화번호 및 상태정보를 이용해 회원 가입 여부 확인조회 -->
+	<select id="checkRegionNowByRegionId" parameterType= "int" resultType="boolean">
+		SELECT count(regionIdx)
+		FROM UserRegion
+		WHERE regionIdx = #{regionIdx} and status = 1 and nowStatus = 1
+
+	</select>
+	
+	<!-- 동네 인증 성공시 authCount 가 1 증가하고, authStatus가 1로 변화한다. -->
+	<update id="patchRegionAuth" parameterType="RegionDto">
+		UPDATE UserRegion SET authCount = authCount + 1 ,
+						  authStatus = 1 
+		WHERE userIdx = #{userIdx} and regionIdx = #{regionIdx} and status = 1
+	</update>
+	
+		<!-- 지역 추가 후 지역 pk 정보 호출 -->
+	<update id="patchRegion" parameterType= "RegionDto" >
+		UPDATE UserRegion SET regionName = #{regionName} , latitude = #{latitude}, 
+								longitude = #{longitude} , userIdx = #{userIdx}, status = 1 
+    	where userIdx = #{userIdx} and status = 0
+    	limit 1
+	</update>
+	
+		<!-- 지역 추가 후 지역 pk 정보 호출 -->
+	<update id="patchTargetRegion" parameterType= "RegionDto" >
+		UPDATE UserRegion SET status = 1 
+    	where regionName = #{regionName} and longitude = #{longitude} and latitude = #{latitude} 
+    			and userIdx = #{userIdx} and status = 0
+    	limit 1
+	</update>
+	
+	
+		<!-- 유저가 가진 지역 리턴 -->    
+	<select id="getRegion" parameterType="int" resultType="Map">
+		SELECT  regionIdx, regionName, nowStatus
+		FROM UserRegion
+		WHERE status = 1 and userIdx = #{userIdx}
+		order by nowStatus DESC
+	</select> 
+	
+		<!-- 동네 인증 성공시 authCount 가 1 증가하고, authStatus가 1로 변화한다. -->
+	<update id="deleteRegionNowStatus" parameterType="int">
+		UPDATE UserRegion SET nowStatus = 0
+		WHERE regionIdx = #{regionIdx} and status = 1
+	</update>
+	
+		<!-- 내 동네 설정 -->
+	<update id="patchRegionNow" parameterType="RegionDto">
+		UPDATE UserRegion SET nowStatus = 1
+		WHERE regionIdx = #{regionIdx} and status = 1
+	</update>
+
+</mapper>

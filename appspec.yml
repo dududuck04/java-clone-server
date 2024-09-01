@@ -1,0 +1,17 @@
+version: 0.0
+os: linux
+files:
+  - source: /build/libs/carrot-clone-0.0.1-SNAPSHOT.jar
+    destination: /tmp/
+hooks:
+  ApplicationStop:
+    - location: scripts/stop_application.sh
+      timeout: 300
+  AfterInstall:
+    - location: scripts/copy_jar.sh
+      timeout: 100
+  ApplicationStart:
+    - location: scripts/start_application.sh
+      timeout: 300
+  ValidateService:
+    - location: scripts/basic_health_check.sh

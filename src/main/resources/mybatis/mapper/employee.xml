@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mzc.stc.caa.carrot.sample.dao.EmployeeDao">
+	<!-- ================================================================================= -->
+	<!-- 1. ResultMap -->
+	<!-- ================================================================================= -->
+    <resultMap id="employeeResultMap" type="Employee">
+		<result property="employeeNumber" column="emp_no"      jdbcType="BIGINT" />
+		<result property="birthDay"       column="birth_date"  jdbcType="DATE" />
+		<result property="firstName"      column="first_name"  jdbcType="VARCHAR" />
+		<result property="lastName"       column="last_name"   jdbcType="VARCHAR" />
+		<result property="gender"         column="gender"      jdbcType="VARCHAR" />
+		<result property="hireDate"       column="hire_date"   jdbcType="DATE" />
+    </resultMap>  
+ 	<!-- ================================================================================= -->
+	<!-- 2. SQL Flags -->
+	<!-- ================================================================================= -->    
+    <sql id="idClause">
+    WHERE emp_no = #{id}
+    </sql>
+	<!-- ================================================================================= --> 
+	<!-- 3. SQLs -->
+	<!-- ================================================================================= -->
+	<!-- 샘플조회 페이징  -->  
+	<sql id="selectEmployeePageClause">
+	 	<trim prefix="WHERE" prefixOverrides="AND |OR">
+			<if test="parameter != null">
+		        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(employeeNumber)">AND emp_no LIKE CONCAT(#{employeeNumber}, '%')</if>
+ 				<if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(firstName)">AND DSCR first_name CONCAT(#{firstName}, '%')</if> 
+ 		        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(lastName)">AND last_name LIKE CONCAT(#{lastName}, '%')</if> 
+ 		        <if test="@org.apache.commons.lang3.StringUtils@isNotEmpty(gender)">AND gender LIKE CONCAT(#{gender}, '%')</if> 
+	        </if>
+		</trim> 
+    </sql>
+    <!-- 사원 검색 (최대 1,000 명) -->    
+	<select id="selectEmployeeList" parameterType="Employee" resultMap="employeeResultMap">
+		SELECT  /* [employee.xml] selectEmployeeList */ *
+		FROM employees.employees
+		<include refid="selectEmployeePageClause"/> 
+		LIMIT 1000
+	</select>
+    <!-- 검색한 사원의 전체 수 -->
+	<select id="selectEmployeeCount" parameterType="Employee" resultType="long">
+		SELECT  /* [employee.xml] selectEmployeeCount */ COUNT(*)
+		FROM employees.employees
+		<include refid="selectEmployeePageClause"/>
+	</select>
+
+	<!-- 선택한 사원 조회 -->
+	<select id="getEmployee" parameterType="int" resultMap="employeeResultMap">
+		SELECT	/* [employee.xml] getEmployee */ emp_no
+    		 ,	birth_date
+    		 ,	first_name
+    		 ,	last_name
+    		 ,	gender
+    		 ,	hire_date
+		  FROM	employees
+		<include refid="idClause"/>
+	</select>
+
+	<!-- 사원 정보 추가 -->
+	<insert id="createEmployee" useGeneratedKeys="true" parameterType="Employee">
+		INSERT INTO employees.employees /* [employee.xml] createEmployee */ (
+			emp_no, 
+			birth_date, 
+			first_name, 
+			last_name, 
+			gender,
+			hire_date
+		) VALUES (
+			#{employeeNumber},
+			#{birthDate},
+			#{firstName},
+			#{lastName},
+			#{gender},
+			#{hireDate}
+		)
+	</insert>  
+	
+	<!-- 사원 정보 수정  -->  
+	<update id="updateEmployee" parameterType="Employee">
+		UPDATE employees.employees /* [employee.xml] updateEmployee */ 
+		<trim prefix="SET" suffixOverrides=",">
+	    	birth_date  = #{birthDate},
+	        first_name  = #{firstName},
+	        last_name   = #{lastName},
+	        gender      = #{gender},
+	        hire_date   = #{hireDate},
+	    </trim>
+		<include refid="idClause"/>
+	</update>
+	
+	<!-- 사원 정보 삭제  -->  
+	<delete id="deleteEmployee" parameterType="int">
+		DELETE FROM employees.employees /* [employee.xml] deleteEmployee */ 
+		<include refid="idClause"/> 
+	</delete>
+
+</mapper>
